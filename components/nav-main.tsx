@@ -34,7 +34,7 @@ export function NavMain({
 }) {
   return (
     <SidebarGroup>
-      <SidebarGroupLabel>Functions</SidebarGroupLabel>
+      <SidebarGroupLabel>Chức năng</SidebarGroupLabel>
       <SidebarMenu>
         {items.map((item) => (
           <Collapsible

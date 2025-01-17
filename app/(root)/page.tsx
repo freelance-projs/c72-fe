@@ -20,8 +20,6 @@ import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
@@ -48,12 +46,12 @@ import {
 } from "@/components/ui/dialog"
 import { DialogClose } from "@radix-ui/react-dialog"
 import FileUpload from "@/components/file-upload"
-import { useRouter, useSearchParams } from "next/navigation"
 
 
 type TagNameAggregateType = {
   count: number
   name: string
+  total_scanned: number
 }
 
 const columns: ColumnDef<TagNameAggregateType>[] = [
@@ -65,7 +63,7 @@ const columns: ColumnDef<TagNameAggregateType>[] = [
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
-          Name
+          Tên
           <ArrowUpDown />
         </Button>
       )
@@ -74,11 +72,20 @@ const columns: ColumnDef<TagNameAggregateType>[] = [
   },
   {
     accessorKey: "count",
-    header: () => <div className="text-center">Count</div>,
+    header: () => <div className="text-center">Số lượng</div>,
     cell: ({ row }) => {
       const tags = parseFloat(row.getValue("count"))
 
       return <div className="text-center font-medium">{tags}</div>
+    },
+  },
+  {
+    accessorKey: "total_scanned",
+    header: () => <div className="text-center">Đã quét</div>,
+    cell: ({ row }) => {
+      const tagScanned = parseFloat(row.getValue("total_scanned"))
+
+      return <div className="text-center font-medium">{tagScanned}</div>
     },
   },
   {
@@ -88,32 +95,21 @@ const columns: ColumnDef<TagNameAggregateType>[] = [
       const history = row.original
       return (
         <div className="flex justify-end gap-2">
-          <DeleteTags name={row.getValue("name")} count={row.getValue("count")} />
+          <Link href={`/details?name=${history.name}`}>
+            <Button variant="secondary">Liệt kê</Button>
+          </Link>
           <UpdateTagsName name={row.getValue("name")} />
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">Open menu</span>
-                <MoreHorizontal />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              <Link href={`/details?name=${history.name}`}>
-                <DropdownMenuItem>List all tags by name</DropdownMenuItem>
-              </Link>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <DeleteTags name={row.getValue("name")} count={row.getValue("count")} />
         </div>
       )
     },
   },
 ]
 
-
 type TagType = {
   id: string
   name: string
+  is_scanned: boolean
   created_at: string
 }
 
@@ -123,16 +119,29 @@ type ResponseDto = {
 }
 
 function aggregateByName(data: TagType[]): TagNameAggregateType[] {
-  const aggregated = data.reduce<{ [key: string]: number }>((acc, item) => {
-    let tagName = item.id
-    if (item.name) {
-      tagName = item.name
-    }
-    acc[tagName] = (acc[tagName] || 0) + 1;
-    return acc;
-  }, {});
+  const aggregationMap: Record<string, TagNameAggregateType> = {};
 
-  return Object.entries(aggregated).map(([name, count]) => ({ name, count }));
+  data.forEach((tag) => {
+    let tagName = tag.id
+    if (tag.name) {
+      tagName = tag.name
+    }
+    if (!aggregationMap[tagName]) {
+      aggregationMap[tagName] = {
+        count: 0,
+        name: tagName,
+        total_scanned: 0,
+      };
+    }
+
+    // Update the count and total_scanned values
+    aggregationMap[tagName].count += 1;
+    if (tag.is_scanned) {
+      aggregationMap[tagName].total_scanned += 1;
+    }
+  })
+
+  return Object.values(aggregationMap)
 }
 
 export default function ListTags() {
@@ -143,48 +152,13 @@ export default function ListTags() {
   const [rowSelection, setRowSelection] = React.useState({})
   const [data, setData] = React.useState<TagNameAggregateType[]>([])
 
-  const router = useRouter();
-  const searchParams = useSearchParams();
 
-  // Initialize filters state based on query parameters
-  const [filters, setFilters] = React.useState<{ [key: string]: boolean }>(() => {
-    const params = Object.fromEntries(searchParams.entries());
-    return {
-      is_scanned: params.is_scanned === "true",
-    };
-  });
-
-  const [urlParams, setUrlParams] = React.useState<string>(searchParams.toString())
-
-  const toggleFilter = (filterKey: string, value: boolean) => {
-    setFilters((prevFilters) => {
-      const updatedFilters = {
-        ...prevFilters,
-        [filterKey]: value,
-      };
-
-      return updatedFilters;
-    });
-
-    // Update the URL query parameters
-    const updatedSearchParams = new URLSearchParams(searchParams);
-
-    // Update or delete the specific filter
-    if (value) {
-      updatedSearchParams.set(filterKey, "true");
-    } else {
-      updatedSearchParams.set(filterKey, "false");
-    }
-
-    router.push(`?${updatedSearchParams.toString()}`);
-    setUrlParams(updatedSearchParams.toString())
-  };
   const { toast } = useToast()
 
   React.useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API}/api/tags?${urlParams}`)
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API}/api/tags`)
         const respJSON: ResponseDto = await response.json()
         if (respJSON.success) {
           const listTags = respJSON.data
@@ -199,7 +173,7 @@ export default function ListTags() {
       }
     }
     fetchData()
-  }, [urlParams])
+  }, [])
 
 
   const table = useReactTable({
@@ -226,7 +200,7 @@ export default function ListTags() {
     <div className="w-full px-2 sm:px-6">
       <div className="flex items-center justify-between py-4">
         <Input
-          placeholder="Filter name..."
+          placeholder="Tìm theo tên..."
           value={(table.getColumn("name")?.getFilterValue() as string) ?? ""}
           onChange={(event) =>
             table.getColumn("name")?.setFilterValue(event.target.value)
@@ -236,7 +210,7 @@ export default function ListTags() {
         <div className="flex gap-2">
           <Dialog>
             <DialogTrigger asChild>
-              <Button>Import</Button>
+              <Button>Gán tag</Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
@@ -248,27 +222,7 @@ export default function ListTags() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="ml-auto">
-                Filter <Filter />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {Object.keys(filters).map((filterKey) => (
-                <DropdownMenuCheckboxItem
-                  key={filterKey}
-                  className="lowercase"
-                  checked={filters[filterKey]}
-
-                  onCheckedChange={(value) => toggleFilter(filterKey, !!value)}
-                >
-                  {filterKey.replace("_", " ")} {/* Format key for display */}
-                </DropdownMenuCheckboxItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="ml-auto">
-                Columns <ChevronDown />
+                Cột <ChevronDown />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
@@ -396,18 +350,18 @@ function DeleteTags({ name, count }: { name: string, count: number }) {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="secondary">Delete</Button>
+        <Button variant="secondary">Xoá</Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Confirm delete</DialogTitle>
+          <DialogTitle>Xác nhận xoá</DialogTitle>
           <DialogDescription>
-            Are you sure you want to delete {count} tags with name {name}? This action cannot be undone.
+            Bạn có chắc chắn muốn xóa {count} thẻ với tên {name}? Hành động này không thể hoàn tác.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
           <DialogClose asChild>
-            <Button onClick={handleDelete} variant="destructive">Delete</Button>
+            <Button onClick={handleDelete} variant="destructive">Xác nhận xoá</Button>
           </DialogClose>
         </DialogFooter>
       </DialogContent>
@@ -446,26 +400,26 @@ function UpdateTagsName({ name }: { name: string }) {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="secondary">Update</Button>
+        <Button variant="secondary">Sửa</Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Update name</DialogTitle>
           <DialogDescription>
-            Make changes to your tag name here. Click save when you are done.
+            Thay đổi tên thẻ của bạn ở đây. Nhấn lưu thay đổi khi bạn đã hoàn tất.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="name" className="text-right">
-              Name
+              Tên mới
             </Label>
             <Input id="name" className="col-span-3" onChange={(e) => { setNewName(e.target.value) }} />
           </div>
         </div>
         <DialogFooter>
           <DialogClose asChild>
-            <Button onClick={handleUpdate}>Save changes</Button>
+            <Button onClick={handleUpdate}>Lưu thay đổi</Button>
           </DialogClose>
         </DialogFooter>
       </DialogContent>

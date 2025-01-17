@@ -13,7 +13,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table"
-import { ArrowUpDown, ChevronDown } from "lucide-react"
+import { ArrowUpDown, Check, ChevronDown, X } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -70,26 +70,32 @@ const columns: ColumnDef<TagType>[] = [
     accessorKey: "name",
     header: ({ column }) => {
       return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-          Name
-          <ArrowUpDown />
-        </Button>
+        <div className="flex justify-center">
+          <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          >
+            Tên
+            <ArrowUpDown />
+          </Button>
+        </div>
       )
     },
-    cell: ({ row }) => <div className="text-center lowercase">{row.getValue("name")}</div>,
+    cell: ({ row }) => <div className="text-center">{row.getValue("name")}</div>,
   },
   {
     accessorKey: "is_scanned",
-    header: () => <div className="text-right">is scanned</div>,
-    cell: ({ row }) => <div className="text-right">{row.getValue("is_scanned") ? "true" : "false"}</div>
+    header: () => <div className="text-center">Đã quét</div>,
+    cell: ({ row }) => <div className="flex justify-center">{row.getValue("is_scanned") ? <Check size={16} /> : <X size={16} />}</div>
   },
   {
     accessorKey: "created_at",
-    header: () => <div className="text-right">Created at</div>,
-    cell: ({ row }) => <div className="text-right font-medium">{row.getValue("created_at")}</div>,
+    header: () => <div className="text-right">Được tạo lúc</div>,
+    cell: ({ row }) => {
+      const date = new Date(row.getValue("created_at"))
+      const formattedDate = `${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
+      return <div className="text-right font-medium">{formattedDate}</div>
+    }
   },
   {
     id: "actions",
@@ -155,7 +161,7 @@ export default function TagDetail() {
     <div className="w-full px-6">
       <div className="flex items-center py-4">
         <Input
-          placeholder="Filter name..."
+          placeholder="Tìm theo tên..."
           value={(table.getColumn("name")?.getFilterValue() as string) ?? ""}
           onChange={(event) =>
             table.getColumn("name")?.setFilterValue(event.target.value)
@@ -165,7 +171,7 @@ export default function TagDetail() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" className="ml-auto">
-              Columns <ChevronDown />
+              Cột hiển thị <ChevronDown />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
@@ -296,18 +302,18 @@ function DeleteTag({ id }: { id: string }) {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="secondary">Delete</Button>
+        <Button variant="secondary">Xoá</Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Confirm delete</DialogTitle>
+          <DialogTitle>Xác nhận xoá</DialogTitle>
           <DialogDescription>
-            Are you sure you want to delete tag {id}? This action cannot be undone.
+            Bạn có chắc chắn muốn xóa thẻ {id} không? Hành động này không thể hoàn tác.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
           <DialogClose asChild>
-            <Button onClick={handleDelete} variant="destructive">Delete</Button>
+            <Button onClick={handleDelete} variant="destructive">Xoá</Button>
           </DialogClose>
         </DialogFooter>
       </DialogContent>
@@ -346,26 +352,26 @@ function UpdateTagName({ id, name }: { id: string, name?: string }) {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="secondary">Update</Button>
+        <Button variant="secondary">Sửa</Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Update name</DialogTitle>
+          <DialogTitle>Cập nhật thông tin tag</DialogTitle>
           <DialogDescription>
-            Make changes to your tag name here. Click save when you are done.
+            Thay đổi tên thẻ của bạn ở đây. Nhấn lưu thay đổi khi bạn đã hoàn tất.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="name" className="text-right">
-              Name
+              Tên mới
             </Label>
             <Input id="name" className="col-span-3" onChange={(e) => { setNewName(e.target.value) }} />
           </div>
         </div>
         <DialogFooter>
           <DialogClose asChild>
-            <Button onClick={handleUpdate}>Save changes</Button>
+            <Button onClick={handleUpdate}>Lưu thay đổi</Button>
           </DialogClose>
         </DialogFooter>
       </DialogContent>

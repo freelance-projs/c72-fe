@@ -26,25 +26,17 @@ const data = {
   },
   teams: [
     {
-      name: "Tag Scanner Inc",
+      name: "Giao diện quản lý",
       logo: GalleryVerticalEnd,
       plan: "Application",
     },
   ],
   navMain: [
     {
-      title: "Tag management",
+      title: "Quản lý tags",
       url: "#",
       icon: Settings2,
       items: [
-        {
-          title: "Scan history",
-          url: "/scan-histories",
-        },
-        {
-          title: "Set tag name",
-          url: "#",
-        },
       ],
     },
   ],
