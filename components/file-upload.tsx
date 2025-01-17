@@ -8,6 +8,7 @@ import { useState } from "react"
 import { useToast } from "@/hooks/use-toast"
 
 import { DialogClose } from "@radix-ui/react-dialog"
+import GetHostLocation from "@/lib/host"
 
 export default function FileUpload() {
   const [file, setFile] = useState<File>()
@@ -32,7 +33,7 @@ export default function FileUpload() {
       formData.append("file", file); // Attach the file to FormData
 
       // Send the binary file to the API
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API}/api/tags-mapping/upload`, {
+      const response = await fetch(`${GetHostLocation()}/api/tags-mapping/upload`, {
         method: "POST",
         body: formData,
       });

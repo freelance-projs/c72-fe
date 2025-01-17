@@ -13,7 +13,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table"
-import { ArrowUpDown, ChevronDown, Filter, MoreHorizontal } from "lucide-react"
+import { ArrowUpDown, ChevronDown } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -46,6 +46,7 @@ import {
 } from "@/components/ui/dialog"
 import { DialogClose } from "@radix-ui/react-dialog"
 import FileUpload from "@/components/file-upload"
+import GetHostLocation from "@/lib/host"
 
 
 type TagNameAggregateType = {
@@ -158,7 +159,7 @@ export default function ListTags() {
   React.useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API}/api/tags`)
+        const response = await fetch(`${GetHostLocation()}/api/tags`)
         const respJSON: ResponseDto = await response.json()
         if (respJSON.success) {
           const listTags = respJSON.data
@@ -326,7 +327,7 @@ function DeleteTags({ name, count }: { name: string, count: number }) {
 
   const handleDelete = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API}/api/tags/by-name/${name}`, {
+      const response = await fetch(`${GetHostLocation()}/api/tags/by-name/${name}`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
@@ -375,7 +376,7 @@ function UpdateTagsName({ name }: { name: string }) {
 
   const handleUpdate = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API}/api/tags/by-name`, {
+      const response = await fetch(`${GetHostLocation()}/api/tags/by-name`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",

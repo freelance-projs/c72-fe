@@ -44,6 +44,7 @@ import {
 import { Label } from "@/components/ui/label"
 import { DialogClose } from "@radix-ui/react-dialog"
 import { useToast } from "@/hooks/use-toast"
+import GetHostLocation from "@/lib/host"
 
 
 type TagType = {
@@ -125,7 +126,7 @@ export default function TagDetail() {
   React.useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API}/api/tags?name=${search.get("name")}`)
+        const response = await fetch(`${GetHostLocation()}/api/tags?name=${search.get("name")}`)
         const respJSON: ResponseDto = await response.json()
         if (respJSON.success) {
           const listTags = respJSON.data
@@ -278,7 +279,7 @@ function DeleteTag({ id }: { id: string }) {
 
   const handleDelete = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API}/api/tags/${id}`, {
+      const response = await fetch(`${GetHostLocation()}/api/tags/${id}`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
@@ -327,7 +328,7 @@ function UpdateTagName({ id, name }: { id: string, name?: string }) {
 
   const handleUpdate = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API}/api/tags`, {
+      const response = await fetch(`${GetHostLocation()}/api/tags`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
