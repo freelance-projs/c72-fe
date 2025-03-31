@@ -10,7 +10,11 @@ import { useToast } from "@/hooks/use-toast"
 import { DialogClose } from "@radix-ui/react-dialog"
 import GetHostLocation from "@/lib/host"
 
-export default function FileUpload() {
+type fileUploadProps = {
+  apiPath: string
+}
+
+export default function FileUpload({ apiPath }: fileUploadProps) {
   const [file, setFile] = useState<File>()
   const { toast } = useToast()
 
@@ -33,7 +37,7 @@ export default function FileUpload() {
       formData.append("file", file); // Attach the file to FormData
 
       // Send the binary file to the API
-      const response = await fetch(`${GetHostLocation()}/api/tags-mapping/upload`, {
+      const response = await fetch(`${GetHostLocation()}/${apiPath}`, {
         method: "POST",
         body: formData,
       });
@@ -75,7 +79,7 @@ export default function FileUpload() {
       </CardContent>
       <CardFooter>
         <DialogClose asChild>
-          <Button size="lg" onClick={handleUploadFile}>Upload</Button>
+          <Button size="lg" onClick={handleUploadFile} disabled={file === undefined}>Tải lên</Button>
         </DialogClose>
       </CardFooter>
     </Card>

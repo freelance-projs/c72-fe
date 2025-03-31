@@ -3,7 +3,11 @@
 import * as React from "react"
 import {
   GalleryVerticalEnd,
-  Settings2,
+  Settings,
+  Shirt,
+  Tag,
+  User,
+  WashingMachine,
 } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
@@ -33,10 +37,62 @@ const data = {
   ],
   navMain: [
     {
-      title: "Quản lý tags",
+      title: "Quản lý thẻ",
       url: "#",
-      icon: Settings2,
+      icon: Tag,
       items: [
+        {
+          title: "Danh sách thẻ",
+          url: "/",
+        },
+        {
+          title: "Quản lý tên thẻ",
+          url: "/tag-names",
+        },
+      ],
+    },
+    {
+      title: "Quản lý mượn đồ",
+      url: "#",
+      icon: Shirt,
+      items: [
+        {
+          title: "Lịch sử giao dịch",
+          url: "/lending",
+        },
+      ],
+    },
+    {
+      title: "Quản lý giặt đồ",
+      url: "#",
+      icon: WashingMachine,
+      items: [
+        {
+          title: "Lịch sử giao dịch",
+          url: "/washing",
+        },
+      ],
+    },
+    {
+      title: "Quản lý phòng ban",
+      url: "#",
+      icon: User,
+      items: [
+        {
+          title: "Danh sách phòng ban",
+          url: "/departments",
+        },
+      ],
+    },
+    {
+      title: "Cài đặt",
+      url: "#",
+      icon: Settings,
+      items: [
+        {
+          title: "Cài đặt hệ thống",
+          url: "/settings",
+        },
       ],
     },
   ],

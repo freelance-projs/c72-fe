@@ -13,7 +13,9 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table"
-import { ArrowUpDown, ChevronDown, FilePenLine, Logs } from "lucide-react"
+import { ArrowUpDown, ChevronDown, Logs, Search } from "lucide-react"
+import { DateRange } from "react-day-picker"
+import { addDays } from "date-fns"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -23,7 +25,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 
 import {
   Table,
@@ -35,49 +36,58 @@ import {
 } from "@/components/ui/table"
 import Link from "next/link"
 import { useToast } from "@/hooks/use-toast"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
-import { DialogClose } from "@radix-ui/react-dialog"
-import FileUpload from "@/components/file-upload"
 import GetHostLocation from "@/lib/host"
+import { LendingDTO, ResponseBody } from "@/dto/response"
+import { DatePickerWithRange } from "@/components/range-date"
 
-
-type TagNameAggregateType = {
-  count: number
-  name: string
-  total_scanned: number
-}
-
-const columns: ColumnDef<TagNameAggregateType>[] = [
+const columns: ColumnDef<LendingDTO>[] = [
   {
-    accessorKey: "name",
+    accessorKey: "department",
     header: ({ column }) => {
       return (
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
-          Tên
+          Phòng ban
           <ArrowUpDown />
         </Button>
       )
     },
-    cell: ({ row }) => <div>{row.getValue("name")}</div>,
+    cell: ({ row }) => <div>{row.getValue("department")}</div>,
   },
   {
-    accessorKey: "count",
-    header: () => <div className="text-center">Số lượng</div>,
+    accessorKey: "num_lending",
+    header: () => <div className="text-center">Đang mượn</div>,
     cell: ({ row }) => {
-      const tags = parseFloat(row.getValue("count"))
+      return <div className="text-center font-medium">{row.getValue("num_lending")}</div>
+    },
+  },
+  {
+    accessorKey: "num_returned",
+    header: () => <div className="text-center">Đã trả</div>,
+    cell: ({ row }) => {
+      return <div className="text-center font-medium">{row.getValue("num_returned")}</div>
+    },
+  },
+  {
+    accessorKey: "created_at",
+    header: () => <div className="text-center">Ngày tạo</div>,
+    cell: ({ row }) => {
+      const date = new Date(row.getValue("created_at"));
+      const datePart = date.toLocaleDateString("vi-VN", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      }).replace(/\//g, "-");
+      const timePart = date.toLocaleTimeString("vi-VN", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      });
 
-      return <div className="text-center font-medium">{tags}</div>
+      const formattedDate = `${datePart} ${timePart}`;
+      return <div className="text-center font-medium">{formattedDate}</div>
     },
   },
   {
@@ -87,7 +97,7 @@ const columns: ColumnDef<TagNameAggregateType>[] = [
       const history = row.original
       return (
         <div className="flex justify-end gap-2">
-          <Link href={`/details?name=${history.name}`}>
+          <Link href={`/lending/${history.id}`}>
             <Button variant="secondary" className="px-3">
               <Logs size={16} />
             </Button>
@@ -95,67 +105,54 @@ const columns: ColumnDef<TagNameAggregateType>[] = [
         </div>
       )
     },
-  },
+  }
 ]
 
-type TagType = {
-  id: string
-  name: string
-  is_scanned: boolean
-  created_at: string
-}
-
-type ResponseDto = {
-  success: boolean
-  data: TagType[]
-}
-
-function aggregateByName(data: TagType[]): TagNameAggregateType[] {
-  const aggregationMap: Record<string, TagNameAggregateType> = {};
-
-  data.forEach((tag) => {
-    let tagName = tag.id
-    if (tag.name) {
-      tagName = tag.name
-    }
-    if (!aggregationMap[tagName]) {
-      aggregationMap[tagName] = {
-        count: 0,
-        name: tagName,
-        total_scanned: 0,
-      };
-    }
-
-    // Update the count and total_scanned values
-    aggregationMap[tagName].count += 1;
-    if (tag.is_scanned) {
-      aggregationMap[tagName].total_scanned += 1;
-    }
-  })
-
-  return Object.values(aggregationMap)
-}
-
-export default function ListTags() {
+export default function LendingScreen() {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({})
   const [rowSelection, setRowSelection] = React.useState({})
-  const [data, setData] = React.useState<TagNameAggregateType[]>([])
-
+  const [data, setData] = React.useState<LendingDTO[]>([])
+  const [date, setDate] = React.useState<DateRange | undefined>({
+    from: addDays(new Date(), -7),
+    to: new Date(),
+  })
 
   const { toast } = useToast()
+
+  const handleRefresh = async () => {
+    const fetchData = async () => {
+      try {
+        const from = date && date.from ? Math.floor(date.from.getTime() / 1000) : ''
+        const to = date && date.to ? Math.floor(date.to.getTime() / 1000) : ''
+
+        const httpResp = await fetch(`${GetHostLocation()}/api/v1/lending?from=${from}&to=${to}`)
+        const jsonResp: ResponseBody<LendingDTO[]> = await httpResp.json()
+        if (jsonResp.success) {
+          setData(jsonResp.data)
+        }
+      } catch (error: any) {
+        toast({
+          title: "Có lỗi xảy ra",
+          description: error.message,
+        })
+      }
+    }
+    await fetchData()
+  }
 
   React.useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch(`${GetHostLocation()}/api/v1/tags`)
-        const respJSON: ResponseDto = await response.json()
-        if (respJSON.success) {
-          const listTags = respJSON.data
-          const tagNames = aggregateByName(listTags)
-          setData(tagNames)
+        const from = date && date.from ? Math.floor(date.from.getTime() / 1000) : ''
+        const to = date && date.to ? Math.floor(date.to.getTime() / 1000) : ''
+
+        const httpResp = await fetch(`${GetHostLocation()}/api/v1/lending?from=${from}&to=${to}`)
+        const jsonResp: ResponseBody<LendingDTO[]> = await httpResp.json()
+        if (jsonResp.success) {
+          setData(jsonResp.data)
         }
       } catch (error: any) {
         toast({
@@ -192,25 +189,14 @@ export default function ListTags() {
     <div className="w-full px-2 sm:px-6">
       <div className="flex items-center justify-between py-4">
         <Input
-          placeholder="Tìm theo tên..."
-          value={(table.getColumn("name")?.getFilterValue() as string) ?? ""}
+          placeholder="Tìm theo phòng ban..."
+          value={(table.getColumn("department")?.getFilterValue() as string) ?? ""}
           onChange={(event) =>
-            table.getColumn("name")?.setFilterValue(event.target.value)
+            table.getColumn("department")?.setFilterValue(event.target.value)
           }
           className="max-w-sm"
         />
         <div className="flex gap-2">
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button>Gán tag</Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle>Import Tag</DialogTitle>
-              </DialogHeader>
-              <FileUpload apiPath="api/v1/tags-mapping/upload" />
-            </DialogContent>
-          </Dialog>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="ml-auto">
@@ -225,7 +211,6 @@ export default function ListTags() {
                   return (
                     <DropdownMenuCheckboxItem
                       key={column.id}
-                      className="capitalize"
                       checked={column.getIsVisible()}
                       onCheckedChange={(value) =>
                         column.toggleVisibility(!!value)
@@ -237,6 +222,11 @@ export default function ListTags() {
                 })}
             </DropdownMenuContent>
           </DropdownMenu>
+          <DatePickerWithRange date={date} setDate={setDate} />
+          <Button variant="outline" onClick={handleRefresh}>
+            <Search />
+            Lấy dữ liệu
+          </Button>
         </div>
       </div>
       <div className="rounded-md border">
@@ -310,66 +300,5 @@ export default function ListTags() {
         </div>
       </div>
     </div>
-  )
-}
-
-
-function UpdateTagsName({ name }: { name: string }) {
-  const [newName, setNewName] = React.useState(name)
-  const { toast } = useToast()
-
-  const handleUpdate = async () => {
-    try {
-      const response = await fetch(`${GetHostLocation()}/api/v1/tags/by-name`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ old_name: name, new_name: newName }),
-      })
-      if (response.status === 200) {
-        toast({
-          title: "Thành công",
-          description: "Cập nhật tên thẻ thành công",
-        })
-        window.location.reload()
-      }
-    } catch (error: any) {
-      toast({
-        title: "Có lỗi xảy ra",
-        description: error.message,
-      })
-    }
-  }
-
-  return (
-    <Dialog>
-      <DialogTrigger asChild>
-        <Button variant="secondary" className="px-3">
-          <FilePenLine size={16} />
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>Update name</DialogTitle>
-          <DialogDescription>
-            Thay đổi tên thẻ của bạn ở đây. Nhấn lưu thay đổi khi bạn đã hoàn tất.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="name" className="text-right">
-              Tên mới
-            </Label>
-            <Input id="name" className="col-span-3" onChange={(e) => { setNewName(e.target.value) }} />
-          </div>
-        </div>
-        <DialogFooter>
-          <DialogClose asChild>
-            <Button onClick={handleUpdate}>Lưu thay đổi</Button>
-          </DialogClose>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   )
 }
