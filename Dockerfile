@@ -56,9 +56,10 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 USER nextjs
 
-EXPOSE 3000
+EXPOSE 5081
 
-ENV PORT=3000
+ENV PORT=5081
+ENV NEXT_PUBLIC_API=http://host.internal.docker:5080
 
 # server.js is created by next build from the standalone output
 # https://nextjs.org/docs/pages/api-reference/config/next-config-js/output
