@@ -40,11 +40,11 @@ import {
 import { DialogClose } from "@radix-ui/react-dialog"
 import FileUpload from "@/components/file-upload"
 import GetHostLocation from "@/lib/host"
-import { DepartmentDto, ResponseBody, DeleteDepartmentRequest } from "@/dto/response"
+import { ResponseBody, CompanyDto, DeleteCompanyRequest } from "@/dto/response"
 import { Checkbox } from "@/components/ui/checkbox"
 
 
-const columns: ColumnDef<DepartmentDto>[] = [
+const columns: ColumnDef<CompanyDto>[] = [
   {
     id: "select",
     header: ({ table }) => (
@@ -96,13 +96,13 @@ const columns: ColumnDef<DepartmentDto>[] = [
 ]
 
 
-export default function DepartmentPage() {
+export default function CompanyPage() {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({})
   const [rowSelection, setRowSelection] = React.useState({})
-  const [department, setDepartments] = React.useState<DepartmentDto[]>([])
+  const [companies, setCompanies] = React.useState<CompanyDto[]>([])
 
   // Ensure that selected rows state gets updated correctly
   React.useEffect(() => {
@@ -111,21 +111,13 @@ export default function DepartmentPage() {
   const handleDelete = async () => {
     try {
       const selectedRows = Object.keys(rowSelection)
-      const selectedDepartments = department.filter((_, key) =>
+      const selectedCompanies = companies.filter((_, key) =>
         selectedRows.includes(key.toString())
       )
-      if (selectedDepartments.length === 0) {
-        toast({
-          title: "Không có phòng ban nào được chọn",
-          description: "Vui lòng chọn ít nhất một phòng ban để xóa.",
-          variant: "destructive"
-        })
-        return
+      const body: DeleteCompanyRequest = {
+        names: selectedCompanies.map((company) => company.name),
       }
-      const body: DeleteDepartmentRequest = {
-        names: selectedDepartments.map((department) => department.name),
-      }
-      const response = await fetch(`${GetHostLocation()}/api/v1/departments`, {
+      const response = await fetch(`${GetHostLocation()}/api/v1/companies`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
@@ -135,20 +127,14 @@ export default function DepartmentPage() {
       if (response.status === 200) {
         toast({
           title: "Thành công",
-          description: "Xóa phòng ban thành công",
+          description: "Xóa công ty thành công",
         })
-        // remove department from the list
-        const updatedCompanies = department.filter((_, index) =>
+        // remove companies from the list
+        const updatedCompanies = companies.filter((_, index) =>
           !selectedRows.includes(index.toString())
         );
-        setDepartments(updatedCompanies);
+        setCompanies(updatedCompanies);
         setRowSelection({})
-      } else {
-        toast({
-          title: "Có lỗi xảy ra",
-          description: "Xóa phòng ban không thành công",
-          variant: "destructive"
-        })
       }
     } catch (error: any) {
       toast({
@@ -163,11 +149,11 @@ export default function DepartmentPage() {
   React.useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch(`${GetHostLocation()}/api/v1/departments`)
-        const respJSON: ResponseBody<DepartmentDto[]> = await response.json()
+        const response = await fetch(`${GetHostLocation()}/api/v1/companies`)
+        const respJSON: ResponseBody<CompanyDto[]> = await response.json()
         if (respJSON.success) {
           const listTags = respJSON.data
-          setDepartments(listTags)
+          setCompanies(listTags)
         }
       } catch (error: any) {
         toast({
@@ -181,7 +167,7 @@ export default function DepartmentPage() {
 
 
   const table = useReactTable({
-    data: department,
+    data: companies,
     columns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
@@ -225,7 +211,7 @@ export default function DepartmentPage() {
               <DialogHeader>
                 <DialogTitle></DialogTitle>
               </DialogHeader>
-              <FileUpload apiPath="api/v1/departments/upload" />
+              <FileUpload apiPath="api/v1/companies/upload" />
             </DialogContent>
           </Dialog>
         </div>
@@ -311,7 +297,7 @@ function UpdateTagsName({ name }: { name: string }) {
 
   const handleUpdate = async () => {
     try {
-      const response = await fetch(`${GetHostLocation()}/api/v1/departments/by-name`, {
+      const response = await fetch(`${GetHostLocation()}/api/v1/companies/by-name`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -321,8 +307,10 @@ function UpdateTagsName({ name }: { name: string }) {
       if (response.status === 200) {
         toast({
           title: "Thành công",
-          description: "Cập nhật tên phòng ban thành công",
+          description: "Cập nhật tên công ty thành công",
         })
+        window.location.reload()
+        // update companies list
       }
     } catch (error: any) {
       toast({
@@ -343,7 +331,7 @@ function UpdateTagsName({ name }: { name: string }) {
         <DialogHeader>
           <DialogTitle></DialogTitle>
           <DialogDescription>
-            Thay đổi tên phòng ban. Nhấn lưu thay đổi khi bạn đã hoàn tất.
+            Thay đổi tên công ty. Nhấn lưu thay đổi khi bạn đã hoàn tất.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">

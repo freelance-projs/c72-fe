@@ -52,35 +52,32 @@ const data = {
       ],
     },
     {
-      title: "Quản lý mượn đồ",
+      title: "Quản lý giao dịch",
       url: "#",
-      icon: Shirt,
+      icon: User,
       items: [
         {
-          title: "Lịch sử giao dịch",
+          title: "Phòng ban mượn đồ",
           url: "/lending",
         },
-      ],
-    },
-    {
-      title: "Quản lý giặt đồ",
-      url: "#",
-      icon: WashingMachine,
-      items: [
         {
-          title: "Lịch sử giao dịch",
+          title: "Công ty giặt đồ",
           url: "/washing",
         },
       ],
     },
     {
-      title: "Quản lý phòng ban",
+      title: "Phòng ban & công ty",
       url: "#",
       icon: User,
       items: [
         {
           title: "Danh sách phòng ban",
           url: "/departments",
+        },
+        {
+          title: "Danh sách công ty giặt",
+          url: "/companies",
         },
       ],
     },

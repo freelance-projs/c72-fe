@@ -59,7 +59,7 @@ USER nextjs
 EXPOSE 5081
 
 ENV PORT=5081
-ENV NEXT_PUBLIC_API=http://host.internal.docker:5080
+ENV NEXT_PUBLIC_API=http://154.26.134.232:5080
 
 
 # server.js is created by next build from the standalone output

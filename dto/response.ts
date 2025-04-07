@@ -34,6 +34,35 @@ export type LendingTagDTO = {
   status: string
 }
 
+export type TxLogDepartmentDto = {
+  id: number
+  department: string
+  num_lending: number
+  num_returned: number
+  details: TxLogDetailDto[]
+  created_at: Date
+}
+
+export type TxLogCompanyDto = {
+  id: number
+  company: string
+  num_washing: number
+  num_returned: number
+  details: TxLogDetailDto[]
+  created_at: Date
+}
+
+export type TxLogDetailDto = {
+  action: string
+  tracking: TxLogTracking[]
+  created_at: Date
+}
+
+export type TxLogTracking = {
+  name: string
+  count: number
+}
+
 export type WashingTagDTO = {
   lending_id: number,
   tag_id: string
@@ -46,6 +75,10 @@ export type TagNameDto = {
   name: string
 }
 
+export type DeleteTagNameRequest = {
+  names: string[]
+}
+
 export type DepartmentDto = {
   name: string
 }
@@ -54,6 +87,11 @@ export type DeleteDepartmentRequest = {
   names: string[]
 }
 
-export type DeleteTagNameRequest = {
+
+export type CompanyDto = {
+  name: string
+}
+
+export type DeleteCompanyRequest = {
   names: string[]
 }
