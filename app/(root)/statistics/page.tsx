@@ -57,10 +57,10 @@ const columns: ColumnDef<LendingDTO>[] = [
     cell: ({ row }) => <div>{row.getValue("department")}</div>,
   },
   {
-    accessorKey: "lending",
+    accessorKey: "exported",
     header: () => <div className="text-center">Đang mượn</div>,
     cell: ({ row }) => {
-      return <div className="text-center font-medium">{row.getValue("lending")}</div>
+      return <div className="text-center font-medium">{row.getValue("exported")}</div>
     },
   },
   {
@@ -68,26 +68,6 @@ const columns: ColumnDef<LendingDTO>[] = [
     header: () => <div className="text-center">Đã trả</div>,
     cell: ({ row }) => {
       return <div className="text-center font-medium">{row.getValue("returned")}</div>
-    },
-  },
-  {
-    accessorKey: "created_at",
-    header: () => <div className="text-center">Ngày tạo</div>,
-    cell: ({ row }) => {
-      const date = new Date(row.getValue("created_at"));
-      const datePart = date.toLocaleDateString("vi-VN", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-      }).replace(/\//g, "-");
-      const timePart = date.toLocaleTimeString("vi-VN", {
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false,
-      });
-
-      const formattedDate = `${datePart} ${timePart}`;
-      return <div className="text-center font-medium">{formattedDate}</div>
     },
   },
   {
@@ -128,7 +108,7 @@ export default function LendingScreen() {
         const from = date && date.from ? Math.floor(date.from.getTime() / 1000) : ''
         const to = date && date.to ? Math.floor(date.to.getTime() / 1000) : ''
 
-        const httpResp = await fetch(`${GetHostLocation()}/api/v1/tx-log/departments?from=${from}&to=${to}`)
+        const httpResp = await fetch(`${GetHostLocation()}/api/v1/stats/departments?from=${from}&to=${to}`)
         const jsonResp: ResponseBody<LendingDTO[]> = await httpResp.json()
         if (jsonResp.success) {
           setData(jsonResp.data)
@@ -149,7 +129,7 @@ export default function LendingScreen() {
         const from = date && date.from ? Math.floor(date.from.getTime() / 1000) : ''
         const to = date && date.to ? Math.floor(date.to.getTime() / 1000) : ''
 
-        const httpResp = await fetch(`${GetHostLocation()}/api/v1/tx-log/departments?from=${from}&to=${to}`)
+        const httpResp = await fetch(`${GetHostLocation()}/api/v1/stats/departments?from=${from}&to=${to}`)
         const jsonResp: ResponseBody<LendingDTO[]> = await httpResp.json()
         if (jsonResp.success) {
           setData(jsonResp.data)
@@ -197,31 +177,6 @@ export default function LendingScreen() {
           className="max-w-sm"
         />
         <div className="flex gap-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="ml-auto">
-                Cột <ChevronDown />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {table
-                .getAllColumns()
-                .filter((column) => column.getCanHide())
-                .map((column) => {
-                  return (
-                    <DropdownMenuCheckboxItem
-                      key={column.id}
-                      checked={column.getIsVisible()}
-                      onCheckedChange={(value) =>
-                        column.toggleVisibility(!!value)
-                      }
-                    >
-                      {column.id}
-                    </DropdownMenuCheckboxItem>
-                  )
-                })}
-            </DropdownMenuContent>
-          </DropdownMenu>
           <DatePickerWithRange date={date} setDate={setDate} />
           <Button variant="outline" onClick={handleRefresh}>
             <Search />

@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button"
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -17,19 +16,49 @@ import {
 import { Input } from "@/components/ui/input"
 import { toast } from "@/hooks/use-toast"
 import GetHostLocation from "@/lib/host"
+import { useEffect } from "react"
+import { Eye, FileSpreadsheet } from "lucide-react"
+import Link from "next/link"
+import { Badge } from "@/components/ui/badge"
 
 
 export default function SettingPage() {
   const FormSchema = z.object({
-    lockTime: z.string().min(1, {
-      message: "Thời gian khoá giao nhận không được nhỏ hơn 1 phút",
+    tx_log_sheet_id: z.string().min(1, {
+      message: "ID bảng ghi không được để trống",
     }),
+    report_sheet_id: z.string().min(1, {
+      message: "ID bảng báo cáo không được để trống",
+    })
   })
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const response = await fetch(`${GetHostLocation()}/api/v1/settings`)
+        if (response.status === 200) {
+          const respJSON = await response.json()
+          const body = await respJSON.data
+          console.log(body)
+          form.setValue("tx_log_sheet_id", body.tx_log_sheet_id)
+          form.setValue("report_sheet_id", body.report_sheet_id)
+        }
+      } catch (error: any) {
+        toast({
+          title: "Có lỗi xảy ra",
+          description: error.message,
+        })
+      }
+    }
+
+    fetchData()
+  }, [])
 
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
-      lockTime: "0",
+      tx_log_sheet_id: "",
+      report_sheet_id: "",
     },
   })
 
@@ -40,9 +69,11 @@ export default function SettingPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ key: 'tx_lock_time', value: data.lockTime }),
+        body: JSON.stringify({
+          tx_log_sheet_id: data.tx_log_sheet_id,
+          report_sheet_id: data.report_sheet_id,
+        }),
       })
-      localStorage.setItem("tx_lock_time", data.lockTime)
       if (response.status === 200) {
         toast({
           title: "Thành công",
@@ -59,25 +90,56 @@ export default function SettingPage() {
 
   return (
     <div className="w-full px-2 sm:px-6">
+      <div className="mb-4">
+        <p className="text-red-500 font-semibold">Lưu ý cần thêm quyền truy cập cho tài khoản bot</p>
+        <Badge variant="outline">
+          ksnk-92@send-mail-454516.iam.gserviceaccount.com
+        </Badge>
+      </div>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="w-2/3 space-y-6">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="w-2/3 space-y-2">
           <FormField
             control={form.control}
-            name="lockTime"
+            name="tx_log_sheet_id"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Khoá giao nhận</FormLabel>
-                <FormControl>
-                  <Input type="number" placeholder="" {...field} className="w-[240px]" />
-                </FormControl>
-                <FormDescription>
-                  Thời gian khoá giao nhận (phút)
-                </FormDescription>
+                <FormLabel>
+                  Id sheet ghi nhận giao dịch
+                </FormLabel>
+                <div className="flex items-center gap-2">
+                  <FormControl>
+                    <Input type="text" placeholder={form.getValues('tx_log_sheet_id')} {...field} className="w-[450px]" />
+                  </FormControl>
+                  <Link href={`https://docs.google.com/spreadsheets/d/${form.getValues('tx_log_sheet_id')}`} target="_blank">
+                    <FileSpreadsheet className="cursor-pointer" />
+                  </Link>
+                </div>
                 <FormMessage />
               </FormItem>
             )}
           />
-          <Button type="submit">Cập nhật</Button>
+
+          <FormField
+            control={form.control}
+            name="report_sheet_id"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>
+                  Id sheet tổng hợp
+                </FormLabel>
+                <div className="flex items-center gap-2">
+                  <FormControl >
+                    <Input type="text" placeholder={form.getValues('report_sheet_id')} {...field} className="w-[450px]" />
+                  </FormControl>
+                  <Link href={`https://docs.google.com/spreadsheets/d/${form.getValues('report_sheet_id')}`} target="_blank">
+                    <FileSpreadsheet className="cursor-pointer" />
+                  </Link>
+                </div>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <Button type="submit" className="mt-15">Cập nhật</Button>
         </form>
       </Form>
     </div>

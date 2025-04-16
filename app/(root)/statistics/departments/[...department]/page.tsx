@@ -27,127 +27,66 @@ import {
 } from "@/components/ui/table"
 import { useToast } from "@/hooks/use-toast"
 import GetHostLocation from "@/lib/host"
-import { ResponseBody, TxLogDto, TxLogDetailDto, TagTracking } from "@/dto/response"
+import { ResponseBody, DepartmentStatDetailDto, TagTracking } from "@/dto/response"
 import { Badge } from "@/components/ui/badge"
 
-const columns: ColumnDef<TxLogDetailDto>[] = [
+const columns: ColumnDef<TagTracking>[] = [
   {
-    accessorKey: "entity",
+    accessorKey: "name",
     header: ({ column }) => {
       return (
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
-          Công ty
+          Tên vật phẩm
           <ArrowUpDown />
         </Button>
       )
     },
-    cell: ({ row }) => <div>{row.getValue("entity")}</div>,
+    cell: ({ row }) => <div>{row.getValue("name")}</div>,
   },
   {
-    accessorKey: "action",
-    header: () => {
-      return (
-        <div className="text-left">
-          Hành động
-        </div>
-      )
-    },
+    accessorKey: "exported",
+    header: () => <div className="text-center">Đang mượn</div>,
     cell: ({ row }) => {
-      const action: string = row.getValue("action")
-      return <div className="text-left font-medium">
-        {action === "washing" ?
-          <Badge variant="secondary">Giặt</Badge>
-          :
-          <Badge variant="secondary">Trả</Badge>
-        }
+      return <div className="text-center font-medium">
+        <Badge variant="secondary">{row.getValue("exported")}</Badge>
       </div>
     },
   },
   {
-    accessorKey: "tracking",
-    header: () => <div className="text-center">
-      <Table className="p-0">
-        <TableHeader>
-          <TableRow>
-            <TableHead className="text-left">Tên vật phẩm</TableHead>
-            <TableHead className="text-right">Số lượng</TableHead>
-          </TableRow>
-        </TableHeader>
-      </Table>
-    </div>,
+    accessorKey: "returned",
+    header: () => <div className="text-center">Đã trả</div>,
     cell: ({ row }) => {
-      const tracking: TagTracking[] = row.getValue("tracking")
-      const action: string = row.getValue("action")
-      return <div className="">
-        <Table>
-          <TableBody>
-            {tracking.map((tracking: TagTracking) => {
-              return (
-                <TableRow key={tracking.name}>
-                  <TableCell className="text-left">
-                    {tracking.name}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {action === "washing" ?
-                      <Badge variant="secondary">{tracking.exported}</Badge>
-                      :
-                      <Badge variant="secondary">{tracking.returned}</Badge>
-                    }
-                  </TableCell>
-                </TableRow>
-              )
-            })}
-          </TableBody>
-        </Table>
+      return <div className="text-center font-medium">
+        <Badge variant="secondary">{row.getValue("returned")}</Badge>
       </div>
-    },
-  },
-  {
-    accessorKey: "created_at",
-    header: () => <div className="text-center">Vào lúc</div>,
-    cell: ({ row }) => {
-      const date = new Date(row.getValue("created_at"));
-      const datePart = date.toLocaleDateString("vi-VN", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-      }).replace(/\//g, "-");
-      const timePart = date.toLocaleTimeString("vi-VN", {
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false,
-      });
-
-      const formattedDate = `${datePart} ${timePart}`;
-      return <div className="text-center font-medium">{formattedDate}</div>
     },
   },
 ]
 
-export default function LendingTagScreen({ params }: { params: Promise<{ id: string }> }) {
+export default function LendingTagScreen({ params }: { params: Promise<{ department: string }> }) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({})
   const [rowSelection, setRowSelection] = React.useState({})
-  const [txLogDetail, setTxLogDetail] = React.useState<TxLogDetailDto[]>([])
-  const [txLog, setTxLog] = React.useState<TxLogDto>()
+  const [tagTrackings, setTagTrackings] = React.useState<TagTracking[]>([])
+  const [departmentStat, setDepartmentStat] = React.useState<DepartmentStatDetailDto>()
 
   const { toast } = useToast()
 
-  const { id } = React.use(params)
+  const { department } = React.use(params)
 
   React.useEffect(() => {
     const fetchData = async () => {
       try {
-        const httpResp = await fetch(`${GetHostLocation()}/api/v1/tx-log/companies/${id}`)
-        const jsonResp: ResponseBody<TxLogDto> = await httpResp.json()
+        const httpResp = await fetch(`${GetHostLocation()}/api/v1/stats/departments/${department}`)
+        const jsonResp: ResponseBody<DepartmentStatDetailDto> = await httpResp.json()
         if (jsonResp.success) {
-          setTxLog(jsonResp.data)
-          setTxLogDetail(jsonResp.data.details)
+          setDepartmentStat(jsonResp.data)
+          setTagTrackings(jsonResp.data.tracking)
         }
       } catch (error: any) {
         toast({
@@ -161,7 +100,7 @@ export default function LendingTagScreen({ params }: { params: Promise<{ id: str
 
 
   const table = useReactTable({
-    data: txLogDetail,
+    data: tagTrackings,
     columns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
@@ -182,21 +121,27 @@ export default function LendingTagScreen({ params }: { params: Promise<{ id: str
 
   return (
     <div className="w-full px-2 sm:px-6">
-      {txLog && (
+      {departmentStat && (
         <div>
-          <h2 className="text-2xl font-bold mb-4 text-gray-600 font-sans">Lịch sử Giặt / Trả Đồ</h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold mb-4 text-gray-600 font-sans">Thống kê mượn / trả đồ của {departmentStat.department}</h2>
+            {departmentStat.exported === 0 ?
+              <Badge variant="secondary">Đã hoàn thành</Badge> :
+              <Badge variant="destructive">Đang xử lý</Badge>
+            }
+          </div>
           <div className="flex flex-1 justify-between p-4 mb-4 rounded-md border">
             <div className="flex items-center">
-              <p className="font-semibold text-gray-600 mr-2">Đem giặt</p>
-              <p className="text-xl font-bold text-blue-600">{txLog.exported + txLog.returned}</p>
+              <p className="font-semibold text-gray-600 mr-2">Cho mượn</p>
+              <p className="text-xl font-bold text-blue-600">{departmentStat.exported + departmentStat.returned}</p>
             </div>
             <div className="flex items-center">
-              <p className="font-semibold text-gray-600 mr-2">Đang giặt</p>
-              <p className="text-xl font-bold text-red-600">{txLog.exported}</p>
+              <p className="font-semibold text-gray-600 mr-2">Đang mượn</p>
+              <p className="text-xl font-bold text-red-600">{departmentStat.exported}</p>
             </div>
             <div className="flex items-center">
-              <p className="font-semibold text-gray-600 mr-2">Đã giặt</p>
-              <p className="text-xl font-bold text-green-600">{txLog.returned}</p>
+              <p className="font-semibold text-gray-600 mr-2">Đã trả</p>
+              <p className="text-xl font-bold text-green-600">{departmentStat.returned}</p>
             </div>
           </div>
         </div>
@@ -208,7 +153,7 @@ export default function LendingTagScreen({ params }: { params: Promise<{ id: str
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
                   return (
-                    <TableHead key={header.id} className="p-0">
+                    <TableHead key={header.id}>
                       {header.isPlaceholder
                         ? null
                         : flexRender(

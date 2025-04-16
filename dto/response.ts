@@ -5,70 +5,43 @@ export type ResponseBody<T> = {
   error: any
 }
 
-export type LendingDTO = {
-  id: number
-  department: string
-  num_lending: number
-  num_returned: number
-  created_at: Date
-}
-
-export type LaundryDTO = {
-  id: number
-  name: string
-  num_washing: number
-  num_returned: number
-  created_at: Date
-}
-
 export type TagDTO = {
   id: string
   name: string
   created_at: string
 }
 
-export type LendingTagDTO = {
-  lending_id: number,
-  tag_id: string
-  tag_name: string
-  status: string
-}
-
-export type TxLogDepartmentDto = {
+export type TxLogDto = {
   id: number
-  department: string
-  num_lending: number
-  num_returned: number
+  exported: number
+  returned: number
   details: TxLogDetailDto[]
-  created_at: Date
 }
 
 export type TxLogCompanyDto = {
   id: number
   company: string
-  num_washing: number
-  num_returned: number
-  details: TxLogDetailDto[]
+  washing: number
+  returned: number
+  created_at: Date
+}
+
+export type TxLogDepartmentDto = {
+  id: number
+  department: string
+  washing: number
+  returned: number
   created_at: Date
 }
 
 export type TxLogDetailDto = {
+  entity: string
   action: string
-  tracking: TxLogTracking[]
+  actor: string
+  tracking: TagTracking[]
   created_at: Date
 }
 
-export type TxLogTracking = {
-  name: string
-  count: number
-}
-
-export type WashingTagDTO = {
-  lending_id: number,
-  tag_id: string
-  tag_name: string
-  status: string
-}
 
 
 export type TagNameDto = {
@@ -94,4 +67,68 @@ export type CompanyDto = {
 
 export type DeleteCompanyRequest = {
   names: string[]
+}
+
+// statistics
+export type DepartmentStatDto = {
+  department: string
+  exported: number
+  returned: number
+}
+
+export type TagTracking = {
+  name: string
+  exported: number
+  returned: number
+}
+
+export type DepartmentStatDetailDto = {
+  department: string
+  exported: number
+  returned: number
+  tracking: TagTracking[]
+}
+
+
+export type CompanyStatDto = {
+  company: string
+  washing: number
+  returned: number
+}
+
+export type CompanyStatDetailDto = {
+  company: string
+  exported: number
+  returned: number
+  tracking: TagTracking[]
+}
+
+export type TagStatDto = {
+  tag_name: string
+  lending: number
+  lending_returned: number
+  washing: number
+  washing_returned: number
+}
+
+export type TagDetailStatDto = {
+  tag_name: string
+  lending: number
+  lending_returned: number
+  washing: number
+  washing_returned: number
+  departments: DepartmentTracking[]
+  companies: CompanyTracking[]
+}
+
+export type DepartmentTracking = {
+  name: string
+  exported: number
+  returned: number
+}
+
+export type CompanyTracking = {
+  name: string
+  exported: number
+  returned: number
 }

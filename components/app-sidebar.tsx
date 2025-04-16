@@ -2,8 +2,10 @@
 
 import * as React from "react"
 import {
+  DollarSign,
   GalleryVerticalEnd,
   Settings,
+  Sheet,
   Shirt,
   Tag,
   User,
@@ -37,6 +39,40 @@ const data = {
   ],
   navMain: [
     {
+      title: "Thống kê",
+      url: "#",
+      icon: Sheet,
+      items: [
+        {
+          title: "Phòng ban",
+          url: "/statistics/departments",
+        },
+        {
+          title: "Công ty",
+          url: "/statistics/companies",
+        },
+        {
+          title: "Thẻ",
+          url: "/statistics/tags",
+        },
+      ],
+    },
+    {
+      title: "Quản lý giao dịch",
+      url: "#",
+      icon: DollarSign,
+      items: [
+        {
+          title: "Phòng ban",
+          url: "/tx-log/department",
+        },
+        {
+          title: "Công ty",
+          url: "/tx-log/company",
+        },
+      ],
+    },
+    {
       title: "Quản lý thẻ",
       url: "#",
       icon: Tag,
@@ -48,21 +84,6 @@ const data = {
         {
           title: "Quản lý tên thẻ",
           url: "/tag-names",
-        },
-      ],
-    },
-    {
-      title: "Quản lý giao dịch",
-      url: "#",
-      icon: User,
-      items: [
-        {
-          title: "Phòng ban mượn đồ",
-          url: "/lending",
-        },
-        {
-          title: "Công ty giặt đồ",
-          url: "/washing",
         },
       ],
     },

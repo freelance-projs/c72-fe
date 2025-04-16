@@ -44,10 +44,7 @@ export default function FileUpload({ apiPath }: fileUploadProps) {
 
 
       if (response.ok) {
-        toast({
-          title: "Thành công",
-          description: "File đã được tải lên thành công!",
-        })
+        window.location.reload()
       } else {
         toast({
           title: "Có lỗi xảy ra",

@@ -13,18 +13,9 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table"
-import { ArrowUpDown, ChevronDown, Logs, Search } from "lucide-react"
-import { DateRange } from "react-day-picker"
-import { addDays } from "date-fns"
+import { ArrowUpDown } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Input } from "@/components/ui/input"
 
 import {
   Table,
@@ -34,45 +25,89 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import Link from "next/link"
 import { useToast } from "@/hooks/use-toast"
 import GetHostLocation from "@/lib/host"
-import { LendingDTO, ResponseBody } from "@/dto/response"
-import { DatePickerWithRange } from "@/components/range-date"
+import { ResponseBody, TxLogDto, TxLogDetailDto, TagTracking } from "@/dto/response"
+import { Badge } from "@/components/ui/badge"
 
-const columns: ColumnDef<LendingDTO>[] = [
+const columns: ColumnDef<TxLogDetailDto>[] = [
   {
-    accessorKey: "department",
+    accessorKey: "entity",
     header: ({ column }) => {
       return (
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
-          Phòng ban
+          Công ty
           <ArrowUpDown />
         </Button>
       )
     },
-    cell: ({ row }) => <div>{row.getValue("department")}</div>,
+    cell: ({ row }) => <div>{row.getValue("entity")}</div>,
   },
   {
-    accessorKey: "lending",
-    header: () => <div className="text-center">Đang mượn</div>,
+    accessorKey: "action",
+    header: () => {
+      return (
+        <div className="text-left">
+          Hành động
+        </div>
+      )
+    },
     cell: ({ row }) => {
-      return <div className="text-center font-medium">{row.getValue("lending")}</div>
+      const action: string = row.getValue("action")
+      return <div className="text-left font-medium">
+        {action === "washing" ?
+          <Badge variant="secondary">Giặt</Badge>
+          :
+          <Badge variant="secondary">Trả</Badge>
+        }
+      </div>
     },
   },
   {
-    accessorKey: "returned",
-    header: () => <div className="text-center">Đã trả</div>,
+    accessorKey: "tracking",
+    header: () => <div className="text-center">
+      <Table className="p-0">
+        <TableHeader>
+          <TableRow>
+            <TableHead className="text-left">Tên vật phẩm</TableHead>
+            <TableHead className="text-right">Số lượng</TableHead>
+          </TableRow>
+        </TableHeader>
+      </Table>
+    </div>,
     cell: ({ row }) => {
-      return <div className="text-center font-medium">{row.getValue("returned")}</div>
+      const tracking: TagTracking[] = row.getValue("tracking")
+      const action: string = row.getValue("action")
+      return <div className="">
+        <Table>
+          <TableBody>
+            {tracking.map((tracking: TagTracking) => {
+              return (
+                <TableRow key={tracking.name}>
+                  <TableCell className="text-left">
+                    {tracking.name}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {action === "washing" ?
+                      <Badge variant="secondary">{tracking.exported}</Badge>
+                      :
+                      <Badge variant="secondary">{tracking.returned}</Badge>
+                    }
+                  </TableCell>
+                </TableRow>
+              )
+            })}
+          </TableBody>
+        </Table>
+      </div>
     },
   },
   {
     accessorKey: "created_at",
-    header: () => <div className="text-center">Ngày tạo</div>,
+    header: () => <div className="text-center">Vào lúc</div>,
     cell: ({ row }) => {
       const date = new Date(row.getValue("created_at"));
       const datePart = date.toLocaleDateString("vi-VN", {
@@ -90,69 +125,29 @@ const columns: ColumnDef<LendingDTO>[] = [
       return <div className="text-center font-medium">{formattedDate}</div>
     },
   },
-  {
-    id: "actions",
-    enableHiding: false,
-    cell: ({ row }) => {
-      const history = row.original
-      return (
-        <div className="flex justify-end gap-2">
-          <Link href={`/lending/${history.id}`}>
-            <Button variant="secondary" className="px-3">
-              <Logs size={16} />
-            </Button>
-          </Link>
-        </div>
-      )
-    },
-  }
 ]
 
-export default function LendingScreen() {
+export default function LendingTagScreen({ params }: { params: Promise<{ id: string }> }) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({})
   const [rowSelection, setRowSelection] = React.useState({})
-  const [data, setData] = React.useState<LendingDTO[]>([])
-  const [date, setDate] = React.useState<DateRange | undefined>({
-    from: addDays(new Date(), -7),
-    to: new Date(),
-  })
+  const [txLogDetail, setTxLogDetail] = React.useState<TxLogDetailDto[]>([])
+  const [txLog, setTxLog] = React.useState<TxLogDto>()
 
   const { toast } = useToast()
 
-  const handleRefresh = async () => {
-    const fetchData = async () => {
-      try {
-        const from = date && date.from ? Math.floor(date.from.getTime() / 1000) : ''
-        const to = date && date.to ? Math.floor(date.to.getTime() / 1000) : ''
-
-        const httpResp = await fetch(`${GetHostLocation()}/api/v1/tx-log/departments?from=${from}&to=${to}`)
-        const jsonResp: ResponseBody<LendingDTO[]> = await httpResp.json()
-        if (jsonResp.success) {
-          setData(jsonResp.data)
-        }
-      } catch (error: any) {
-        toast({
-          title: "Có lỗi xảy ra",
-          description: error.message,
-        })
-      }
-    }
-    await fetchData()
-  }
+  const { id } = React.use(params)
 
   React.useEffect(() => {
     const fetchData = async () => {
       try {
-        const from = date && date.from ? Math.floor(date.from.getTime() / 1000) : ''
-        const to = date && date.to ? Math.floor(date.to.getTime() / 1000) : ''
-
-        const httpResp = await fetch(`${GetHostLocation()}/api/v1/tx-log/departments?from=${from}&to=${to}`)
-        const jsonResp: ResponseBody<LendingDTO[]> = await httpResp.json()
+        const httpResp = await fetch(`${GetHostLocation()}/api/v1/tx-log/companies/${id}`)
+        const jsonResp: ResponseBody<TxLogDto> = await httpResp.json()
         if (jsonResp.success) {
-          setData(jsonResp.data)
+          setTxLog(jsonResp.data)
+          setTxLogDetail(jsonResp.data.details)
         }
       } catch (error: any) {
         toast({
@@ -166,7 +161,7 @@ export default function LendingScreen() {
 
 
   const table = useReactTable({
-    data,
+    data: txLogDetail,
     columns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
@@ -187,48 +182,31 @@ export default function LendingScreen() {
 
   return (
     <div className="w-full px-2 sm:px-6">
-      <div className="flex items-center justify-between py-4">
-        <Input
-          placeholder="Tìm theo phòng ban..."
-          value={(table.getColumn("department")?.getFilterValue() as string) ?? ""}
-          onChange={(event) =>
-            table.getColumn("department")?.setFilterValue(event.target.value)
-          }
-          className="max-w-sm"
-        />
-        <div className="flex gap-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="ml-auto">
-                Cột <ChevronDown />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {table
-                .getAllColumns()
-                .filter((column) => column.getCanHide())
-                .map((column) => {
-                  return (
-                    <DropdownMenuCheckboxItem
-                      key={column.id}
-                      checked={column.getIsVisible()}
-                      onCheckedChange={(value) =>
-                        column.toggleVisibility(!!value)
-                      }
-                    >
-                      {column.id}
-                    </DropdownMenuCheckboxItem>
-                  )
-                })}
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <DatePickerWithRange date={date} setDate={setDate} />
-          <Button variant="outline" onClick={handleRefresh}>
-            <Search />
-            Lấy dữ liệu
-          </Button>
+      {txLog && (
+        <div>
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold mb-4 text-gray-600 font-sans">Lịch sử Giặt / Trả Đồ</h2>
+            {txLog.exported === txLog.returned ?
+              <Badge variant="secondary">Đã hoàn thành</Badge> :
+              <Badge variant="destructive">Đang xử lý</Badge>
+            }
+          </div>
+          <div className="flex flex-1 justify-between p-4 mb-4 rounded-md border">
+            <div className="flex items-center">
+              <p className="font-semibold text-gray-600 mr-2">Đem giặt</p>
+              <p className="text-xl font-bold text-blue-600">{txLog.exported}</p>
+            </div>
+            <div className="flex items-center">
+              <p className="font-semibold text-gray-600 mr-2">Đang giặt</p>
+              <p className="text-xl font-bold text-red-600">{txLog.returned - txLog.exported}</p>
+            </div>
+            <div className="flex items-center">
+              <p className="font-semibold text-gray-600 mr-2">Đã giặt</p>
+              <p className="text-xl font-bold text-green-600">{txLog.returned}</p>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -236,7 +214,7 @@ export default function LendingScreen() {
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
                   return (
-                    <TableHead key={header.id}>
+                    <TableHead key={header.id} className="p-0">
                       {header.isPlaceholder
                         ? null
                         : flexRender(

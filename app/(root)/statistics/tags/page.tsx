@@ -3,9 +3,6 @@
 import * as React from "react"
 import {
   ColumnDef,
-  ColumnFiltersState,
-  SortingState,
-  VisibilityState,
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
@@ -13,17 +10,11 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table"
-import { ArrowUpDown, ChevronDown, Logs, Search } from "lucide-react"
+import { ArrowUpDown, Logs, Search } from "lucide-react"
 import { DateRange } from "react-day-picker"
 import { addDays } from "date-fns"
 
 import { Button } from "@/components/ui/button"
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 
 import {
@@ -37,57 +28,60 @@ import {
 import Link from "next/link"
 import { useToast } from "@/hooks/use-toast"
 import GetHostLocation from "@/lib/host"
-import { LendingDTO, ResponseBody } from "@/dto/response"
+import { ResponseBody, TagStatDto } from "@/dto/response"
 import { DatePickerWithRange } from "@/components/range-date"
+import { Badge } from "@/components/ui/badge"
 
-const columns: ColumnDef<LendingDTO>[] = [
+const departmentColumns: ColumnDef<TagStatDto>[] = [
   {
-    accessorKey: "department",
+    accessorKey: "tag_name",
     header: ({ column }) => {
       return (
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
-          Phòng ban
+          Tên thẻ
           <ArrowUpDown />
         </Button>
       )
     },
-    cell: ({ row }) => <div>{row.getValue("department")}</div>,
+    cell: ({ row }) => <div>{row.getValue("tag_name")}</div>,
   },
   {
     accessorKey: "lending",
     header: () => <div className="text-center">Đang mượn</div>,
     cell: ({ row }) => {
-      return <div className="text-center font-medium">{row.getValue("lending")}</div>
+      return <div className="text-center font-medium">
+        <Badge variant="secondary">{row.getValue("lending")}</Badge>
+      </div>
     },
   },
   {
-    accessorKey: "returned",
+    accessorKey: "lending_returned",
     header: () => <div className="text-center">Đã trả</div>,
     cell: ({ row }) => {
-      return <div className="text-center font-medium">{row.getValue("returned")}</div>
+      return <div className="text-center font-medium">
+        <Badge variant="secondary">{row.getValue("lending_returned")}</Badge>
+      </div>
     },
   },
   {
-    accessorKey: "created_at",
-    header: () => <div className="text-center">Ngày tạo</div>,
+    accessorKey: "washing",
+    header: () => <div className="text-center">Đang giặt</div>,
     cell: ({ row }) => {
-      const date = new Date(row.getValue("created_at"));
-      const datePart = date.toLocaleDateString("vi-VN", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-      }).replace(/\//g, "-");
-      const timePart = date.toLocaleTimeString("vi-VN", {
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false,
-      });
-
-      const formattedDate = `${datePart} ${timePart}`;
-      return <div className="text-center font-medium">{formattedDate}</div>
+      return <div className="text-center font-medium">
+        <Badge variant="secondary">{row.getValue("washing")}</Badge>
+      </div>
+    },
+  },
+  {
+    accessorKey: "washing_returned",
+    header: () => <div className="text-center">Đã giặt</div>,
+    cell: ({ row }) => {
+      return <div className="text-center font-medium">
+        <Badge variant="secondary">{row.getValue("washing_returned")}</Badge>
+      </div>
     },
   },
   {
@@ -97,7 +91,7 @@ const columns: ColumnDef<LendingDTO>[] = [
       const history = row.original
       return (
         <div className="flex justify-end gap-2">
-          <Link href={`/lending/${history.id}`}>
+          <Link href={`/statistics/tags/${history.tag_name}`}>
             <Button variant="secondary" className="px-3">
               <Logs size={16} />
             </Button>
@@ -109,12 +103,7 @@ const columns: ColumnDef<LendingDTO>[] = [
 ]
 
 export default function LendingScreen() {
-  const [sorting, setSorting] = React.useState<SortingState>([])
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
-  const [columnVisibility, setColumnVisibility] =
-    React.useState<VisibilityState>({})
-  const [rowSelection, setRowSelection] = React.useState({})
-  const [data, setData] = React.useState<LendingDTO[]>([])
+  const [data, setData] = React.useState<TagStatDto[]>([])
   const [date, setDate] = React.useState<DateRange | undefined>({
     from: addDays(new Date(), -7),
     to: new Date(),
@@ -122,14 +111,14 @@ export default function LendingScreen() {
 
   const { toast } = useToast()
 
-  const handleRefresh = async () => {
+  const handleRefreshDept = async () => {
     const fetchData = async () => {
       try {
         const from = date && date.from ? Math.floor(date.from.getTime() / 1000) : ''
         const to = date && date.to ? Math.floor(date.to.getTime() / 1000) : ''
 
-        const httpResp = await fetch(`${GetHostLocation()}/api/v1/tx-log/departments?from=${from}&to=${to}`)
-        const jsonResp: ResponseBody<LendingDTO[]> = await httpResp.json()
+        const httpResp = await fetch(`${GetHostLocation()}/api/v1/stats/tags?from=${from}&to=${to}`)
+        const jsonResp: ResponseBody<TagStatDto[]> = await httpResp.json()
         if (jsonResp.success) {
           setData(jsonResp.data)
         }
@@ -149,8 +138,8 @@ export default function LendingScreen() {
         const from = date && date.from ? Math.floor(date.from.getTime() / 1000) : ''
         const to = date && date.to ? Math.floor(date.to.getTime() / 1000) : ''
 
-        const httpResp = await fetch(`${GetHostLocation()}/api/v1/tx-log/departments?from=${from}&to=${to}`)
-        const jsonResp: ResponseBody<LendingDTO[]> = await httpResp.json()
+        const httpResp = await fetch(`${GetHostLocation()}/api/v1/stats/tags?from=${from}&to=${to}`)
+        const jsonResp: ResponseBody<TagStatDto[]> = await httpResp.json()
         if (jsonResp.success) {
           setData(jsonResp.data)
         }
@@ -167,21 +156,11 @@ export default function LendingScreen() {
 
   const table = useReactTable({
     data,
-    columns,
-    onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
+    columns: departmentColumns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
-    onColumnVisibilityChange: setColumnVisibility,
-    onRowSelectionChange: setRowSelection,
-    state: {
-      sorting,
-      columnFilters,
-      columnVisibility,
-      rowSelection,
-    },
   })
 
 
@@ -189,41 +168,16 @@ export default function LendingScreen() {
     <div className="w-full px-2 sm:px-6">
       <div className="flex items-center justify-between py-4">
         <Input
-          placeholder="Tìm theo phòng ban..."
-          value={(table.getColumn("department")?.getFilterValue() as string) ?? ""}
+          placeholder="Tìm theo thẻ..."
+          value={(table.getColumn("tag_name")?.getFilterValue() as string) ?? ""}
           onChange={(event) =>
-            table.getColumn("department")?.setFilterValue(event.target.value)
+            table.getColumn("tag_name")?.setFilterValue(event.target.value)
           }
           className="max-w-sm"
         />
         <div className="flex gap-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="ml-auto">
-                Cột <ChevronDown />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {table
-                .getAllColumns()
-                .filter((column) => column.getCanHide())
-                .map((column) => {
-                  return (
-                    <DropdownMenuCheckboxItem
-                      key={column.id}
-                      checked={column.getIsVisible()}
-                      onCheckedChange={(value) =>
-                        column.toggleVisibility(!!value)
-                      }
-                    >
-                      {column.id}
-                    </DropdownMenuCheckboxItem>
-                  )
-                })}
-            </DropdownMenuContent>
-          </DropdownMenu>
           <DatePickerWithRange date={date} setDate={setDate} />
-          <Button variant="outline" onClick={handleRefresh}>
+          <Button variant="outline" onClick={handleRefreshDept}>
             <Search />
             Lấy dữ liệu
           </Button>
@@ -269,7 +223,7 @@ export default function LendingScreen() {
             ) : (
               <TableRow>
                 <TableCell
-                  colSpan={columns.length}
+                  colSpan={departmentColumns.length}
                   className="h-24 text-center"
                 >
                   No results.

@@ -37,10 +37,11 @@ import {
 import Link from "next/link"
 import { useToast } from "@/hooks/use-toast"
 import GetHostLocation from "@/lib/host"
-import { LendingDTO, ResponseBody } from "@/dto/response"
+import { ResponseBody, TxLogCompanyDto } from "@/dto/response"
 import { DatePickerWithRange } from "@/components/range-date"
+import { Badge } from "@/components/ui/badge"
 
-const columns: ColumnDef<LendingDTO>[] = [
+const columns: ColumnDef<TxLogCompanyDto>[] = [
   {
     accessorKey: "department",
     header: ({ column }) => {
@@ -60,14 +61,18 @@ const columns: ColumnDef<LendingDTO>[] = [
     accessorKey: "lending",
     header: () => <div className="text-center">Đang mượn</div>,
     cell: ({ row }) => {
-      return <div className="text-center font-medium">{row.getValue("lending")}</div>
+      return <div className="text-center font-medium">
+        <Badge variant="secondary">{row.getValue("lending")}</Badge>
+      </div>
     },
   },
   {
     accessorKey: "returned",
     header: () => <div className="text-center">Đã trả</div>,
     cell: ({ row }) => {
-      return <div className="text-center font-medium">{row.getValue("returned")}</div>
+      return <div className="text-center font-medium">
+        <Badge variant="secondary">{row.getValue("returned")}</Badge>
+      </div>
     },
   },
   {
@@ -97,7 +102,7 @@ const columns: ColumnDef<LendingDTO>[] = [
       const history = row.original
       return (
         <div className="flex justify-end gap-2">
-          <Link href={`/lending/${history.id}`}>
+          <Link href={`/tx-log/department/${history.id}`}>
             <Button variant="secondary" className="px-3">
               <Logs size={16} />
             </Button>
@@ -114,7 +119,7 @@ export default function LendingScreen() {
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({})
   const [rowSelection, setRowSelection] = React.useState({})
-  const [data, setData] = React.useState<LendingDTO[]>([])
+  const [data, setData] = React.useState<TxLogCompanyDto[]>([])
   const [date, setDate] = React.useState<DateRange | undefined>({
     from: addDays(new Date(), -7),
     to: new Date(),
@@ -129,7 +134,7 @@ export default function LendingScreen() {
         const to = date && date.to ? Math.floor(date.to.getTime() / 1000) : ''
 
         const httpResp = await fetch(`${GetHostLocation()}/api/v1/tx-log/departments?from=${from}&to=${to}`)
-        const jsonResp: ResponseBody<LendingDTO[]> = await httpResp.json()
+        const jsonResp: ResponseBody<TxLogCompanyDto[]> = await httpResp.json()
         if (jsonResp.success) {
           setData(jsonResp.data)
         }
@@ -150,7 +155,7 @@ export default function LendingScreen() {
         const to = date && date.to ? Math.floor(date.to.getTime() / 1000) : ''
 
         const httpResp = await fetch(`${GetHostLocation()}/api/v1/tx-log/departments?from=${from}&to=${to}`)
-        const jsonResp: ResponseBody<LendingDTO[]> = await httpResp.json()
+        const jsonResp: ResponseBody<TxLogCompanyDto[]> = await httpResp.json()
         if (jsonResp.success) {
           setData(jsonResp.data)
         }

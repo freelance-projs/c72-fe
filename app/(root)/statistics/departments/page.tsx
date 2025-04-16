@@ -13,17 +13,11 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table"
-import { ArrowUpDown, ChevronDown, Logs, Search } from "lucide-react"
+import { ArrowUpDown, Logs, Search } from "lucide-react"
 import { DateRange } from "react-day-picker"
 import { addDays } from "date-fns"
 
 import { Button } from "@/components/ui/button"
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 
 import {
@@ -37,10 +31,11 @@ import {
 import Link from "next/link"
 import { useToast } from "@/hooks/use-toast"
 import GetHostLocation from "@/lib/host"
-import { LendingDTO, ResponseBody } from "@/dto/response"
+import { DepartmentStatDto, ResponseBody } from "@/dto/response"
 import { DatePickerWithRange } from "@/components/range-date"
+import { Badge } from "@/components/ui/badge"
 
-const columns: ColumnDef<LendingDTO>[] = [
+const columns: ColumnDef<DepartmentStatDto>[] = [
   {
     accessorKey: "department",
     header: ({ column }) => {
@@ -57,37 +52,21 @@ const columns: ColumnDef<LendingDTO>[] = [
     cell: ({ row }) => <div>{row.getValue("department")}</div>,
   },
   {
-    accessorKey: "lending",
+    accessorKey: "exported",
     header: () => <div className="text-center">Đang mượn</div>,
     cell: ({ row }) => {
-      return <div className="text-center font-medium">{row.getValue("lending")}</div>
+      return <div className="text-center font-medium">
+        <Badge variant="secondary">{row.getValue("exported")}</Badge>
+      </div>
     },
   },
   {
     accessorKey: "returned",
     header: () => <div className="text-center">Đã trả</div>,
     cell: ({ row }) => {
-      return <div className="text-center font-medium">{row.getValue("returned")}</div>
-    },
-  },
-  {
-    accessorKey: "created_at",
-    header: () => <div className="text-center">Ngày tạo</div>,
-    cell: ({ row }) => {
-      const date = new Date(row.getValue("created_at"));
-      const datePart = date.toLocaleDateString("vi-VN", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-      }).replace(/\//g, "-");
-      const timePart = date.toLocaleTimeString("vi-VN", {
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false,
-      });
-
-      const formattedDate = `${datePart} ${timePart}`;
-      return <div className="text-center font-medium">{formattedDate}</div>
+      return <div className="text-center font-medium">
+        <Badge variant="secondary">{row.getValue("returned")}</Badge>
+      </div>
     },
   },
   {
@@ -97,7 +76,7 @@ const columns: ColumnDef<LendingDTO>[] = [
       const history = row.original
       return (
         <div className="flex justify-end gap-2">
-          <Link href={`/lending/${history.id}`}>
+          <Link href={`/statistics/departments/${history.department}`}>
             <Button variant="secondary" className="px-3">
               <Logs size={16} />
             </Button>
@@ -114,7 +93,7 @@ export default function LendingScreen() {
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({})
   const [rowSelection, setRowSelection] = React.useState({})
-  const [data, setData] = React.useState<LendingDTO[]>([])
+  const [data, setData] = React.useState<DepartmentStatDto[]>([])
   const [date, setDate] = React.useState<DateRange | undefined>({
     from: addDays(new Date(), -7),
     to: new Date(),
@@ -128,8 +107,8 @@ export default function LendingScreen() {
         const from = date && date.from ? Math.floor(date.from.getTime() / 1000) : ''
         const to = date && date.to ? Math.floor(date.to.getTime() / 1000) : ''
 
-        const httpResp = await fetch(`${GetHostLocation()}/api/v1/tx-log/departments?from=${from}&to=${to}`)
-        const jsonResp: ResponseBody<LendingDTO[]> = await httpResp.json()
+        const httpResp = await fetch(`${GetHostLocation()}/api/v1/stats/departments?from=${from}&to=${to}`)
+        const jsonResp: ResponseBody<DepartmentStatDto[]> = await httpResp.json()
         if (jsonResp.success) {
           setData(jsonResp.data)
         }
@@ -149,8 +128,8 @@ export default function LendingScreen() {
         const from = date && date.from ? Math.floor(date.from.getTime() / 1000) : ''
         const to = date && date.to ? Math.floor(date.to.getTime() / 1000) : ''
 
-        const httpResp = await fetch(`${GetHostLocation()}/api/v1/tx-log/departments?from=${from}&to=${to}`)
-        const jsonResp: ResponseBody<LendingDTO[]> = await httpResp.json()
+        const httpResp = await fetch(`${GetHostLocation()}/api/v1/stats/departments?from=${from}&to=${to}`)
+        const jsonResp: ResponseBody<DepartmentStatDto[]> = await httpResp.json()
         if (jsonResp.success) {
           setData(jsonResp.data)
         }
@@ -197,31 +176,6 @@ export default function LendingScreen() {
           className="max-w-sm"
         />
         <div className="flex gap-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="ml-auto">
-                Cột <ChevronDown />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {table
-                .getAllColumns()
-                .filter((column) => column.getCanHide())
-                .map((column) => {
-                  return (
-                    <DropdownMenuCheckboxItem
-                      key={column.id}
-                      checked={column.getIsVisible()}
-                      onCheckedChange={(value) =>
-                        column.toggleVisibility(!!value)
-                      }
-                    >
-                      {column.id}
-                    </DropdownMenuCheckboxItem>
-                  )
-                })}
-            </DropdownMenuContent>
-          </DropdownMenu>
           <DatePickerWithRange date={date} setDate={setDate} />
           <Button variant="outline" onClick={handleRefresh}>
             <Search />
